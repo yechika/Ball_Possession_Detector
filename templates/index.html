@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processor</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        .progress { margin: 10px 0; font-size: 18px; }
+        .progress-bar { width: 100%; background-color: #f3f3f3; border: 1px solid #ccc; position: relative; height: 25px; margin-top: 10px; }
+        .progress-bar-fill { height: 100%; background-color: #4caf50; text-align: center; line-height: 25px; color: white; width: 0; }
+        .btn-download { 
+            display: inline-block; 
+            margin-top: 20px; 
+            padding: 10px 20px; 
+            color: white; 
+            background-color: #4caf50; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            text-align: center;
+        }
+        .btn-download:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Processing App</h1>
+        <form id="uploadForm">
+            <label for="video">Upload Video:</label>
+            <input type="file" id="video" name="video" accept="video/*" required>
+            <button type="submit">Upload and Process</button>
+        </form>
+        <div class="progress">
+            <p id="progressMessage">Progress: Waiting...</p>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+        <div class="result" style="display: none;">
+            <a id="downloadLink" href="#" class="btn-download">Download Processed Video</a>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.min.js"></script>
+    <script>
+        const form = document.getElementById('uploadForm');
+        const progressMessage = document.getElementById('progressMessage');
+        const progressBar = document.getElementById('progressBar');
+        const result = document.querySelector('.result');
+        const downloadLink = document.getElementById('downloadLink');
+
+        const socket = io();
+
+        socket.on('progress', (data) => {
+            progressMessage.textContent = `Progress: ${data.message}`;
+            progressBar.style.width = `${data.percentage}%`;
+
+            // Show download link when processing completes
+            if (data.percentage === 100) {
+                result.style.display = 'block';
+                downloadLink.href = '/download/output_video.avi'; // Ensure this matches the server output file path
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+
+                if (data.message === 'Processing started') {
+                    progressMessage.textContent = 'Processing...';
+                } else {
+                    console.error('Error starting processing.');
+                }
+            } catch (err) {
+                console.error(err);
+                progressMessage.textContent = 'An error occurred.';
+            }
+        });
+    </script>
+</body>
+</html>
